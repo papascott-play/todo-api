@@ -111,9 +111,20 @@ app.put('/todos/:id', function(req, res) {
   }, function () {
     res.status(500).send();
   });
+});
 
+// POST /users
+app.post('/users', function(req, res) {
+  var body = _.pick(req.body, 'email', 'password');
+
+  db.user.create(body).then(function (user) {
+    res.json(user.toJSON());
+  }, function (e) {
+    res.status(404).json(e);
+  });
 
 });
+
 
 db.sequelize.sync().then(function () {
   app.listen(PORT, function() {
