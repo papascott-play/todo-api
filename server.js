@@ -19,7 +19,9 @@ app.get('/', function(req, res) {
 // GET /todos?completed=true&q=house
 app.get('/todos', middleware.requireAuthentication, function(req, res) {
   var query = req.query;
-  var where = {};
+  var where = {
+    userId: req.user.get('id')
+  }; //req.user.get('id')
 
   if (query.hasOwnProperty('completed') && query.completed === 'true') {
     where.completed = true;
@@ -44,7 +46,12 @@ app.get('/todos', middleware.requireAuthentication, function(req, res) {
 app.get('/todos/:id', middleware.requireAuthentication, function(req, res) {
   var todoId = parseInt(req.params.id, 10);
 
-  db.todo.findById(todoId).then(function (todo) {
+  db.todo.findOne({
+    where: {
+      userId: req.user.get('id'),
+      id: todoId
+    }
+  }).then(function (todo) {
     if (!!todo) {
       res.json(todo.toJSON());
     } else {
@@ -76,6 +83,7 @@ app.delete('/todos/:id', middleware.requireAuthentication, function(req, res) {
 
   db.todo.destroy({
     where: {
+      userId: req.user.get('id'),
       id: todoId
     }
   }).then(function (rowsDeleted) {
@@ -95,6 +103,11 @@ app.delete('/todos/:id', middleware.requireAuthentication, function(req, res) {
 app.put('/todos/:id', middleware.requireAuthentication, function(req, res) {
   var todoId = parseInt(req.params.id, 10);
   var body = _.pick(req.body, 'description', 'completed');
+  var where = {
+    userId: req.user.get('id'),
+    id: todoId
+  };
+
   var attributes = {};
 
   if (body.hasOwnProperty('completed')) {
@@ -105,13 +118,18 @@ app.put('/todos/:id', middleware.requireAuthentication, function(req, res) {
     attributes.description = body.description;
   }
 
-  db.todo.findById(todoId).then(function (todo) {
-    if (todo) {
-      todo.update(attributes).then(function (todo) {
-        res.json(todo.toJSON());
-      });
-    } else {
-      res.status(404).send();
+  db.todo.findOne({
+    where: {
+      userId: req.user.get('id'),
+      id: todoId
+      }
+    }).then(function (todo) {
+      if (todo) {
+        todo.update(attributes).then(function (todo) {
+          res.json(todo.toJSON());
+        });
+      } else {
+        res.status(404).send();
     }
   }, function () {
     res.status(500).send();
